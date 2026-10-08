@@ -50,11 +50,23 @@ For a scanned or image-only page:
 2. Call YOLO layout analysis with `regions`, not all slots. Keep figure/table regions as ordered visual objects.
 3. Inspect each proposed text region. If the agent can read a region, transcribe the whole region directly; do not download every slot.
 4. If one character is uncertain, choose a crop box from the readable region and call `crop`.
-5. Call glyph search only for that crop. Compare the actual candidate images, not just scores.
-6. If a candidate is useful, select it as an unverified binding. If no candidate is defensible, register the original crop; if a printed form needs a usable character, write and validate a KAGE recipe with `glyph_compose`.
-7. Submit the complete region text with structured glyph/image references through `transcribe`.
+5. Call glyph search only for that crop. Compare the actual candidate images, not just scores. A miss does not prove that the form lacks Unicode.
+6. Recheck the source sentence, parenthetical reading, author's explicit character name and clear component structure. Use those direct signals with a Unicode/GlyphWiki lookup before declaring the form unencoded.
+7. If a candidate is useful, select it as an unverified binding. If no candidate is defensible, register the original crop. For a genuinely unencoded printed form that must be typeable, write and validate a KAGE recipe with `glyph_compose`; keep known characters on their standard Unicode codepoints.
+8. Submit the complete region text with structured glyph/image references through `transcribe`.
 
 The agent, not the service, decides whether a character is known, uncertain, unencoded, or worth reconstructing. Do not turn a table into hundreds of forced OCR slots.
+
+## Projection and crop boundaries
+
+Projection measures ink by row or column; it proposes whitespace boundaries and never recognizes a character.
+
+- Use it for deskewed, direction-consistent printed blocks with stable line spacing, and optionally for candidate slots in fixed-pitch CJK text.
+- For footnote markers, superscripts, punctuation, annotations or proportional type, use it only to locate a line; merge detached dots/components and check neighboring spacing.
+- Do not let projection define single-glyph boxes for rubbings, hand copies, bamboo-slip images, touching forms or damaged/noisy material.
+- The calling visual model chooses the final bbox while viewing the complete line/region. `crop` only executes `[left, top, right, bottom)` in original-image pixels and records provenance.
+
+A useful hybrid is: layout region → deskew → row/column projection → slot proposal → component merge and neighbor constraints → visual review → exact crop.
 
 ## Native/text PDF decision pattern
 
@@ -76,6 +88,7 @@ Native extraction is not a reason to skip visual evidence, and visual retrieval 
 
 - Read the original page/region image before interpreting a candidate.
 - A projection boundary is not proof that one crop is one character; correct it with `crop` when needed.
+- Preserve failed search evidence when direct source text later resolves a character; this demonstrates that retrieval and identification are different claims.
 - Use `--detach` and `status JOB_ID --wait --output DIR` for long jobs.
 - Never repeat an uncertain POST blindly. Keep the job receipt and inspect its status first.
 - Do not place base64 images or entire catalogues in the model context; fetch only the evidence needed for the next decision.
